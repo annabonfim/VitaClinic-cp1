@@ -15,7 +15,7 @@ namespace VitaClinic.Console
             while (continuar)
             {
                 MostrarMenu();
-                string opcao = System.Console.ReadLine();
+                string opcao = System.Console.ReadLine()?.Trim() ?? "";
 
                 switch (opcao)
                 {
@@ -80,39 +80,49 @@ namespace VitaClinic.Console
             System.Console.Write("Digite sua opção: ");
         }
 
-        // Método auxiliar para ler texto obrigatório
         static string LerTexto(string campo)
         {
             string texto;
             do
             {
                 System.Console.Write($"{campo}: ");
-                texto = System.Console.ReadLine();
-                if (string.IsNullOrEmpty(texto))
+                texto = System.Console.ReadLine()?.Trim() ?? "";
+                if (string.IsNullOrWhiteSpace(texto))
                 {
                     System.Console.WriteLine($"{campo} é obrigatório!");
                 }
-            } while (string.IsNullOrEmpty(texto));
+            } while (string.IsNullOrWhiteSpace(texto));
             return texto;
         }
 
-        // Método auxiliar para ler idade válida
         static int LerIdade()
         {
             int idade;
             do
             {
                 System.Console.Write("Idade: ");
-                if (!int.TryParse(System.Console.ReadLine(), out idade) || idade <= 0 || idade > 120)
-                {
-                    System.Console.WriteLine("Idade deve ser entre 1 e 120!");
-                }
-                else
+                if (int.TryParse(System.Console.ReadLine(), out idade) && idade > 0 && idade <= 120)
                 {
                     break;
                 }
+                System.Console.WriteLine("Idade deve ser entre 1 e 120!");
             } while (true);
             return idade;
+        }
+
+        static string LerCPF()
+        {
+            string cpf;
+            do
+            {
+                cpf = LerTexto("CPF");
+                if (Pessoa.ValidarCPF(cpf))
+                {
+                    break;
+                }
+                System.Console.WriteLine("CPF inválido!");
+            } while (true);
+            return cpf;
         }
 
         static void CadastrarPacienteParticular()
@@ -121,29 +131,21 @@ namespace VitaClinic.Console
 
             PacienteParticular paciente = new PacienteParticular();
             paciente.Nome = LerTexto("Nome");
+            paciente.CPF = LerCPF();
 
-            // CPF com validação básica
+            string telefone;
             do
             {
-                paciente.CPF = LerTexto("CPF");
-                if (!Pessoa.ValidarCPF(paciente.CPF))
-                {
-                    System.Console.WriteLine("CPF inválido!");
-                }
-                else
+                telefone = LerTexto("Telefone");
+                if (PacienteParticular.ValidarTelefone(telefone))
                 {
                     break;
                 }
+                System.Console.WriteLine("Telefone deve ter entre 10 e 11 números!");
             } while (true);
 
-            paciente.telefone = LerTexto("Telefone");
-
-            int idade = LerIdade();
-            if (!paciente.SetIdade(idade))
-            {
-                System.Console.WriteLine("Erro ao definir idade!");
-                return;
-            }
+            paciente.telefone = telefone;
+            paciente.SetIdade(LerIdade());
 
             clinica.AdicionarPessoa(paciente);
         }
@@ -154,24 +156,9 @@ namespace VitaClinic.Console
 
             PacienteConvenio paciente = new PacienteConvenio();
             paciente.Nome = LerTexto("Nome");
-
-            do
-            {
-                paciente.CPF = LerTexto("CPF");
-                if (!Pessoa.ValidarCPF(paciente.CPF))
-                {
-                    System.Console.WriteLine("CPF inválido!");
-                }
-                else
-                {
-                    break;
-                }
-            } while (true);
-
+            paciente.CPF = LerCPF();
             paciente.nomeConvenio = LerTexto("Nome do Convênio");
-
-            int idade = LerIdade();
-            paciente.SetIdade(idade);
+            paciente.SetIdade(LerIdade());
 
             clinica.AdicionarPessoa(paciente);
         }
@@ -182,24 +169,9 @@ namespace VitaClinic.Console
 
             PacienteSUS paciente = new PacienteSUS();
             paciente.Nome = LerTexto("Nome");
-
-            do
-            {
-                paciente.CPF = LerTexto("CPF");
-                if (!Pessoa.ValidarCPF(paciente.CPF))
-                {
-                    System.Console.WriteLine("CPF inválido!");
-                }
-                else
-                {
-                    break;
-                }
-            } while (true);
-
+            paciente.CPF = LerCPF();
             paciente.cartaoSUS = LerTexto("Cartão SUS");
-
-            int idade = LerIdade();
-            paciente.SetIdade(idade);
+            paciente.SetIdade(LerIdade());
 
             clinica.AdicionarPessoa(paciente);
         }
@@ -210,40 +182,10 @@ namespace VitaClinic.Console
 
             Medico medico = new Medico();
             medico.Nome = LerTexto("Nome");
-
-            do
-            {
-                medico.CPF = LerTexto("CPF");
-                if (!Pessoa.ValidarCPF(medico.CPF))
-                {
-                    System.Console.WriteLine("CPF inválido!");
-                }
-                else
-                {
-                    break;
-                }
-            } while (true);
-
+            medico.CPF = LerCPF();
             medico.crm = LerTexto("CRM");
             medico.especialidade = LerTexto("Especialidade");
             medico.matricula = LerTexto("Matrícula");
-
-            // Salário simples
-            decimal salario;
-            do
-            {
-                System.Console.Write("Salário: ");
-                if (!decimal.TryParse(System.Console.ReadLine(), out salario) || salario <= 0)
-                {
-                    System.Console.WriteLine("Salário deve ser maior que zero!");
-                }
-                else
-                {
-                    break;
-                }
-            } while (true);
-
-            medico.salario = salario;
 
             clinica.AdicionarPessoa(medico);
         }
@@ -267,74 +209,53 @@ namespace VitaClinic.Console
                 return;
             }
 
-            // Mostrar pacientes
             System.Console.WriteLine("\nPacientes:");
             for (int i = 0; i < pacientes.Count; i++)
             {
                 System.Console.WriteLine($"{i + 1} - {pacientes[i].Nome} ({pacientes[i].GetTipo()})");
             }
 
-            // Escolher paciente
             int numPaciente;
             do
             {
-                System.Console.Write("Escolha o paciente (número): ");
-                if (!int.TryParse(System.Console.ReadLine(), out numPaciente) ||
-                    numPaciente < 1 || numPaciente > pacientes.Count)
-                {
-                    System.Console.WriteLine($"Digite um número de 1 a {pacientes.Count}!");
-                }
-                else
+                System.Console.Write("Escolha o paciente: ");
+                if (int.TryParse(System.Console.ReadLine(), out numPaciente) && numPaciente >= 1 && numPaciente <= pacientes.Count)
                 {
                     break;
                 }
+                System.Console.WriteLine($"Digite um número entre 1 e {pacientes.Count}!");
             } while (true);
 
-            // Mostrar médicos
             System.Console.WriteLine("\nMédicos:");
             for (int i = 0; i < medicos.Count; i++)
             {
                 System.Console.WriteLine($"{i + 1} - Dr(a). {medicos[i].Nome} ({medicos[i].especialidade})");
             }
 
-            // Escolher médico
             int numMedico;
             do
             {
-                System.Console.Write("Escolha o médico (número): ");
-                if (!int.TryParse(System.Console.ReadLine(), out numMedico) ||
-                    numMedico < 1 || numMedico > medicos.Count)
-                {
-                    System.Console.WriteLine($"Digite um número de 1 a {medicos.Count}!");
-                }
-                else
+                System.Console.Write("Escolha o médico: ");
+                if (int.TryParse(System.Console.ReadLine(), out numMedico) && numMedico >= 1 && numMedico <= medicos.Count)
                 {
                     break;
                 }
+                System.Console.WriteLine($"Digite um número entre 1 e {medicos.Count}!");
             } while (true);
 
-            // Data
             string data;
             do
             {
-                System.Console.Write("Data da consulta (dd/mm/aaaa): ");
-                data = System.Console.ReadLine();
-                if (!Consulta.ValidarData(data))
-                {
-                    System.Console.WriteLine("Data inválida! Use formato dd/mm/aaaa e a data deve ser hoje ou no futuro.");
-                    System.Console.WriteLine("Exemplo: 20/01/2026");
-                }
-                else
+                System.Console.Write("Data (dd/mm/aaaa): ");
+                data = System.Console.ReadLine()?.Trim() ?? "";
+                if (Consulta.ValidarData(data))
                 {
                     break;
                 }
+                System.Console.WriteLine("Data inválida! Use formato dd/mm/aaaa no futuro.");
             } while (true);
 
-            // Criar consulta
-            var pacienteSelecionado = pacientes[numPaciente - 1];
-            var medicoSelecionado = medicos[numMedico - 1];
-
-            clinica.CriarConsulta(pacienteSelecionado, medicoSelecionado, data);
+            clinica.CriarConsulta(pacientes[numPaciente - 1], medicos[numMedico - 1], data);
         }
 
         static void CriarDadosTeste()
@@ -357,7 +278,6 @@ namespace VitaClinic.Console
             m1.crm = "12345-SP";
             m1.especialidade = "Cardiologista";
             m1.matricula = "MED001";
-            m1.salario = 12000.00m;
 
             clinica.AdicionarPessoa(p1);
             clinica.AdicionarPessoa(p2);

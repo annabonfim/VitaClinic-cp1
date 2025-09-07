@@ -1,60 +1,52 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace VitaClinic.Lib
 {
-    // CLASSE ABSTRATA - obrigatório
     public abstract class Pessoa
     {
-        // 1. public 
+        // 1. public
         public string Nome = string.Empty;
         public string CPF = string.Empty;
 
-        // 2. private 
+        // 2. private
         private int idade;
 
-        // 3. protected 
+        // 3. protected
         protected string codigo = string.Empty;
 
-        // 4. internal 
+        // 4. internal
         internal string observacoes = string.Empty;
 
-        // 5. protected internal 
+        // 5. protected internal
         protected internal void MostrarInfo()
         {
             Console.WriteLine($"Nome: {Nome}, CPF: {CPF}");
         }
 
-        // 6. private protected 
+        // 6. private protected
         private protected void ProcessarDados()
         {
             codigo = "PES" + DateTime.Now.Year;
         }
 
-        // 7. Como alternativa ao 'file', usamos private static
+        // 7. private static
         private static bool ValidarCPFInterno(string cpf)
         {
             return !string.IsNullOrEmpty(cpf);
         }
 
-        // MÉTODO ABSTRATO - deve ser implementado
         public abstract decimal CalcularValor();
 
-        // MÉTODO VIRTUAL - pode ser sobrescrito (POLIMORFISMO)
         public virtual string GetTipo()
         {
-            return "Pessoa Genérica";
+            return "Pessoa";
         }
 
-        public bool SetIdade(int novaIdade)
+        public void SetIdade(int novaIdade)
         {
-            if (novaIdade > 0 && novaIdade <= 120)
-            {
+            if (novaIdade > 0)
                 idade = novaIdade;
-                return true;
-            }
-            return false;
         }
 
         public int GetIdade()
@@ -62,16 +54,23 @@ namespace VitaClinic.Lib
             return idade;
         }
 
-        // Validação simples de CPF
         public static bool ValidarCPF(string cpf)
         {
-            if (string.IsNullOrEmpty(cpf)) return false;
-            cpf = cpf.Replace(".", "").Replace("-", "");
-            return cpf.Length == 11 && cpf.All(char.IsDigit) && ValidarCPFInterno(cpf);
+            if (string.IsNullOrWhiteSpace(cpf)) return false;
+            cpf = cpf.Replace(".", "").Replace("-", "").Replace(" ", "");
+
+            if (cpf.Length != 11) return false;
+
+            for (int i = 0; i < cpf.Length; i++)
+            {
+                if (!char.IsDigit(cpf[i]))
+                    return false;
+            }
+
+            return ValidarCPFInterno(cpf);
         }
     }
 
-    // PACIENTES - POLIMORFISMO com override
     public class PacienteParticular : Pessoa
     {
         public string telefone = string.Empty;
@@ -84,6 +83,20 @@ namespace VitaClinic.Lib
         public override string GetTipo()
         {
             return "Paciente Particular";
+        }
+
+        public static bool ValidarTelefone(string telefone)
+        {
+            if (string.IsNullOrWhiteSpace(telefone)) return false;
+
+            string apenasNumeros = "";
+            for (int i = 0; i < telefone.Length; i++)
+            {
+                if (char.IsDigit(telefone[i]))
+                    apenasNumeros += telefone[i];
+            }
+
+            return apenasNumeros.Length >= 10 && apenasNumeros.Length <= 11;
         }
     }
 
@@ -117,11 +130,9 @@ namespace VitaClinic.Lib
         }
     }
 
-    // FUNCIONÁRIOS - classe abstrata
     public abstract class Funcionario : Pessoa
     {
         public string matricula = string.Empty;
-        public decimal salario;
 
         public abstract void Trabalhar();
     }
@@ -143,49 +154,10 @@ namespace VitaClinic.Lib
 
         public override void Trabalhar()
         {
-            Console.WriteLine($"Dr(a). {Nome} está atendendo pacientes - {especialidade}");
+            Console.WriteLine($"Dr(a). {Nome} está atendendo - {especialidade}");
         }
     }
 
-    public class Enfermeiro : Funcionario
-    {
-        public string coren = string.Empty;
-
-        public override decimal CalcularValor()
-        {
-            return 0.00m;
-        }
-
-        public override string GetTipo()
-        {
-            return "Enfermeiro(a)";
-        }
-
-        public override void Trabalhar()
-        {
-            Console.WriteLine($"{Nome} está cuidando dos pacientes");
-        }
-    }
-
-    public class Recepcionista : Funcionario
-    {
-        public override decimal CalcularValor()
-        {
-            return 0.00m;
-        }
-
-        public override string GetTipo()
-        {
-            return "Recepcionista";
-        }
-
-        public override void Trabalhar()
-        {
-            Console.WriteLine($"{Nome} está atendendo na recepção");
-        }
-    }
-
-    // CONSULTA
     public class Consulta
     {
         public int id;
@@ -196,16 +168,12 @@ namespace VitaClinic.Lib
 
         public void MostrarConsulta()
         {
-            Console.WriteLine($"\n--- CONSULTA {id} ---");
-            Console.WriteLine($"Paciente: {paciente.Nome} ({paciente.GetTipo()})");
-            Console.WriteLine($"Médico: {medico.Nome}");
-            Console.WriteLine($"Data: {data}");
-            Console.WriteLine($"Valor: R$ {valor:F2}");
+            Console.WriteLine($"\nConsulta {id}: {paciente.Nome} com Dr(a). {medico.Nome} em {data} - R$ {valor:F2}");
         }
 
         public static bool ValidarData(string dataStr)
         {
-            if (DateTime.TryParse(dataStr, out DateTime resultado))
+            if (DateTime.TryParseExact(dataStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime resultado))
             {
                 return resultado.Date >= DateTime.Now.Date;
             }
@@ -213,92 +181,60 @@ namespace VitaClinic.Lib
         }
     }
 
-    // CLÍNICA
     public class Clinica
     {
         public List<Pessoa> pessoas = new List<Pessoa>();
         public List<Consulta> consultas = new List<Consulta>();
         private int proximoId = 1;
 
-        public bool AdicionarPessoa(Pessoa pessoa)
+        public void AdicionarPessoa(Pessoa pessoa)
         {
-            if (pessoa == null || string.IsNullOrEmpty(pessoa.Nome))
-                return false;
-
             pessoas.Add(pessoa);
-            Console.WriteLine($"{pessoa.GetTipo()} {pessoa.Nome} foi cadastrado!");
-            return true;
+            Console.WriteLine($"{pessoa.GetTipo()} {pessoa.Nome} cadastrado!");
         }
 
-        public bool CriarConsulta(Pessoa paciente, Medico medico, string data)
+        public void CriarConsulta(Pessoa paciente, Medico medico, string data)
         {
-            if (paciente == null || medico == null)
-            {
-                Console.WriteLine("Erro: Paciente ou médico inválido!");
-                return false;
-            }
-
-            if (!Consulta.ValidarData(data))
-            {
-                Console.WriteLine("Erro: Data deve ser hoje ou no futuro!");
-                return false;
-            }
-
             Consulta consulta = new Consulta();
             consulta.id = proximoId++;
             consulta.paciente = paciente;
             consulta.medico = medico;
             consulta.data = data;
-            consulta.valor = paciente.CalcularValor(); // POLIMORFISMO!
+            consulta.valor = paciente.CalcularValor();
 
             consultas.Add(consulta);
             Console.WriteLine($"Consulta agendada! Valor: R$ {consulta.valor:F2}");
-            return true;
         }
 
         public void ListarPacientes()
         {
             Console.WriteLine("\n=== PACIENTES ===");
-            var pacientes = pessoas.Where(p => !(p is Funcionario)).ToList();
-
-            if (pacientes.Count == 0)
+            foreach (Pessoa pessoa in pessoas)
             {
-                Console.WriteLine("Nenhum paciente cadastrado.");
-                return;
-            }
-
-            foreach (Pessoa pessoa in pacientes)
-            {
-                Console.WriteLine($"- {pessoa.Nome} ({pessoa.GetTipo()}) - Taxa: R$ {pessoa.CalcularValor():F2}");
+                if (!(pessoa is Funcionario))
+                {
+                    Console.WriteLine($"- {pessoa.Nome} ({pessoa.GetTipo()}) - R$ {pessoa.CalcularValor():F2}");
+                }
             }
         }
 
         public void ListarMedicos()
         {
             Console.WriteLine("\n=== MÉDICOS ===");
-            var medicos = pessoas.Where(p => p is Medico).Cast<Medico>().ToList();
-
-            if (medicos.Count == 0)
+            foreach (Pessoa pessoa in pessoas)
             {
-                Console.WriteLine("Nenhum médico cadastrado.");
-                return;
-            }
-
-            foreach (Medico med in medicos)
-            {
-                Console.WriteLine($"- Dr(a). {med.Nome} - {med.especialidade}");
+                if (pessoa is Medico)
+                {
+                    Medico med = (Medico)pessoa;
+                    Console.WriteLine($"- Dr(a). {med.Nome} - {med.especialidade}");
+                    med.Trabalhar();
+                }
             }
         }
 
         public void ListarConsultas()
         {
-            Console.WriteLine("\n=== CONSULTAS AGENDADAS ===");
-            if (consultas.Count == 0)
-            {
-                Console.WriteLine("Nenhuma consulta agendada.");
-                return;
-            }
-
+            Console.WriteLine("\n=== CONSULTAS ===");
             foreach (Consulta consulta in consultas)
             {
                 consulta.MostrarConsulta();
@@ -307,13 +243,24 @@ namespace VitaClinic.Lib
 
         public List<Pessoa> ObterPacientes()
         {
-            return pessoas.Where(p => !(p is Funcionario)).ToList();
+            List<Pessoa> pacientes = new List<Pessoa>();
+            foreach (Pessoa pessoa in pessoas)
+            {
+                if (!(pessoa is Funcionario))
+                    pacientes.Add(pessoa);
+            }
+            return pacientes;
         }
 
         public List<Medico> ObterMedicos()
         {
-            return pessoas.Where(p => p is Medico).Cast<Medico>().ToList();
+            List<Medico> medicos = new List<Medico>();
+            foreach (Pessoa pessoa in pessoas)
+            {
+                if (pessoa is Medico)
+                    medicos.Add((Medico)pessoa);
+            }
+            return medicos;
         }
     }
 }
-
